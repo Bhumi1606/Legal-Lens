@@ -45,6 +45,7 @@ python app.py
 App will run at: http://localhost:5000
 
 **Supported File Formats**
+
 .pdf – Extracts text or uses OCR if scanned.
 
 .docx, .doc
@@ -54,6 +55,7 @@ App will run at: http://localhost:5000
 .png, .jpg, .jpeg, .tiff, .bmp – OCR-based text extraction.
 
 **Technologies Used**
+
 Python, Flask
 
 Ollama + Mistral (local LLM)
