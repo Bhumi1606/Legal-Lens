@@ -22,32 +22,29 @@ LegalLens is a Flask-based web app that allows users to upload legal documents i
 Install Python libraries:
 ```bash
 pip install -r requirements.txt
-
+```
 2. Install and Set Up Ollama
 Download and install Ollama from https://ollama.com/download
 Then pull the Mistral model:
 
-bash
-Copy
-Edit
+```bash
 ollama pull mistral
+```
 3. Start the Ollama Service
 In a new terminal:
 
-bash
-Copy
-Edit
+```bash
 ollama run mistral
+```
 This will launch the model and expose the API at http://localhost:11434.
 
 🧪 Run the Flask App
-bash
-Copy
-Edit
+```bash
 python app.py
+```
 App will run at: http://localhost:5000
 
-📁 Supported File Formats
+**Supported File Formats**
 .pdf – Extracts text or uses OCR if scanned.
 
 .docx, .doc
@@ -56,7 +53,7 @@ App will run at: http://localhost:5000
 
 .png, .jpg, .jpeg, .tiff, .bmp – OCR-based text extraction.
 
-🤖 Technologies Used
+**Technologies Used**
 Python, Flask
 
 Ollama + Mistral (local LLM)
@@ -65,7 +62,7 @@ PyMuPDF, pytesseract, python-docx
 
 Session-based Q&A handling
 
-✅ Future Enhancements
+**Future Enhancements**
 Add support for citation tracking
 
 Summarization confidence scoring
