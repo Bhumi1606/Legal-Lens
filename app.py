@@ -15,68 +15,37 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 def decode_legal_text(legal_text):
-    """Send legal text to Gemini for plain language simplification."""
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    headers = {"Content-Type": "application/json"}
+    """Simplify legal text using Mistral via Ollama."""
+    url = "http://localhost:11434/api/generate"
+    payload = {
+        "model": "mistral",
+        "prompt": f"""
+You are a legal assistant. Simplify the following legal text into plain, easy-to-understand language, while keeping its original meaning.
 
-    data = {
-        "contents": [{
-            "parts": [{
-                "text": f"""
-Simplify the following legal text into plain, easy-to-understand language while preserving its original meaning.
+If it's in a non-English language, give the output in both English and the original language.
 
-If the input text is in English, return the output in English.
+Also, extract any key details (names, dates, monetary values, places) and show them at the top.
 
-If the input text is in another language, return the output in both English and the original language.
-
-If the input text is in another language, format the output as follows:
-
-ENGLISH:
-(Simplified English version)
-
-(Leave an empty line)
-
-Language of input text:
-(Simplified version in the original language)
-
-Additionally, extract and mention any key details (such as names, dates, monetary amounts, or locations) found in the text. It should be displayed before the summary, but after language is mentioned.
-
-Now, simplify this legal text:
-
+Legal Text:
 {legal_text}
-"""
-            }]
-        }]
+""",
+        "stream": False
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data)
+        response = requests.post(url, json=payload)
         response.raise_for_status()
-        response_json = response.json()
-        simplified_output = response_json.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
-
-        # Formatting fixes
-        simplified_output = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", simplified_output)  # Convert **bold** to <b>bold</b>
-        simplified_output = re.sub(r"<br\s*/?>", "\n", simplified_output, flags=re.IGNORECASE)
-
+        simplified_output = response.json().get("response", "").strip()
         detected_language = "Multilingual (Original + English)" if "ENGLISH:" in simplified_output else "English"
-
         return simplified_output, detected_language
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         return f"Error: {str(e)}", "Unknown"
-    except Exception:
-        return "Error: Unexpected response format.", "Unknown"
-
-def ask_gemini(question, context):
-    """Ask questions based on the legal text and previous Q&A."""
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    headers = {"Content-Type": "application/json"}
-
-    data = {
-        "contents": [{
-            "parts": [{
-                "text": f"""
-Based on the following simplified legal text and previous Q&A, answer the user's question concisely:
+    
+def ask_ollama(question, context):
+    """Ask follow-up questions based on simplified legal text using Mistral."""
+    url = "http://localhost:11434/api/generate"
+    prompt = f"""
+You are a legal assistant. Based on the following simplified legal text and previous Q&A, answer the user's question briefly and clearly.
 
 Simplified Legal Text:
 {context}
@@ -84,21 +53,22 @@ Simplified Legal Text:
 Previous Q&A:
 {session.get('chat_history', '')}
 
-Question: {question}
+Question:
+{question}
 """
-            }]
-        }]
+
+    payload = {
+        "model": "mistral",
+        "prompt": prompt,
+        "stream": False
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data)
+        response = requests.post(url, json=payload)
         response.raise_for_status()
-        response_json = response.json()
-        return response_json.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Error: Unexpected response.").strip()
-    except requests.exceptions.RequestException as e:
+        return response.json().get("response", "").strip()
+    except Exception as e:
         return f"Error: {str(e)}"
-    except Exception:
-        return "Error: Unexpected response format."
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -139,7 +109,7 @@ def ask():
     simplified_text = session.get("simplified_text", "")
 
     if question and simplified_text:
-        answer = ask_gemini(question, simplified_text)  # Pass legal text as context
+        answer = ask_ollama(question, simplified_text) # Pass legal text as context
         session["chat_history"].insert(0, {"question": question, "answer": answer})  # Insert at top
         session.modified = True
 
